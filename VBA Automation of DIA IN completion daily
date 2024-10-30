@@ -1,0 +1,80 @@
+Private Sub Worksheet_Calculate()
+    On Error GoTo ErrorHandler
+    Application.EnableEvents = False ' Disable events to prevent infinite loops
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("DAILY REPORT")
+    
+    Dim B3Value As Double
+    Dim D3Value As Double
+    B3Value = ws.Range("B3").Value
+    D3Value = ws.Range("D3").Value
+
+    ' Ensure there is a valid date in B2 before proceeding
+    If IsDate(ws.Range("B2").Value) Then
+        Dim DateInB2 As String
+        Dim DateFound As Range ' Declare DateFound only once
+        DateInB2 = Format(ws.Range("B2").Value, "mm/dd/yyyy") ' Convert date to text format
+
+        ' If both B3 and D3 are zero, delete the corresponding date and data
+        If B3Value = 0 And D3Value = 0 Then
+            Set DateFound = Nothing
+            
+            ' Search for the date in row 42
+            Dim cell As Range
+            For Each cell In ws.Range("B42:ZZ42")
+                If Format(cell.Value, "mm/dd/yyyy") = DateInB2 Then
+                    Set DateFound = cell
+                    Exit For
+                End If
+            Next cell
+            
+            ' If the date is found, clear the date and corresponding data
+            If Not DateFound Is Nothing Then
+                ws.Cells(42, DateFound.Column).ClearContents ' Delete the date
+                ws.Cells(44, DateFound.Column).ClearContents ' Delete the value under B3
+                ws.Cells(45, DateFound.Column).ClearContents ' Delete the value under D3
+            End If
+
+        ' If either B3 or D3 is non-zero, update the corresponding values
+        ElseIf B3Value <> 0 Or D3Value <> 0 Then
+            Set DateFound = Nothing
+
+            ' Search for the date in row 42
+            For Each cell In ws.Range("B42:ZZ42")
+                If Format(cell.Value, "mm/dd/yyyy") = DateInB2 Then
+                    Set DateFound = cell
+                    Exit For
+                End If
+            Next cell
+
+            ' If the date is found, update the values
+            If Not DateFound Is Nothing Then
+                ws.Cells(44, DateFound.Column).Value = B3Value
+                ws.Cells(45, DateFound.Column).Value = D3Value
+            Else
+                ' If the date is not found, find the next available empty cell in row 42 for the new date
+                Dim NextDateCell As Range
+                Set NextDateCell = ws.Cells(42, ws.Columns.Count).End(xlToLeft)
+
+                ' If row 42 is empty, start from B42, otherwise find the next empty column
+                If NextDateCell.Column < 2 Then
+                    Set NextDateCell = ws.Range("B42")
+                Else
+                    Set NextDateCell = NextDateCell.Offset(0, 1)
+                End If
+
+                ' Insert the date from B2 in the next available cell in row 42 (as text)
+                NextDateCell.Value = DateInB2
+
+                ' Insert the values from B3 and D3 under the new date
+                ws.Cells(44, NextDateCell.Column).Value = B3Value
+                ws.Cells(45, NextDateCell.Column).Value = D3Value
+            End If
+        End If
+    End If
+
+ErrorHandler:
+    Application.EnableEvents = True ' Re-enable events after execution
+End Sub
+
