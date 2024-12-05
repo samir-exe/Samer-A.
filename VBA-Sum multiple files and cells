@@ -1,0 +1,78 @@
+Sub SumSpecificCellsAcrossAllFiles()
+    Dim baseFolderPath As String
+    Dim sumValue As Double
+    Dim resultCell As Range
+    Dim fileName As String
+    Dim folderPath As String
+    Dim wb As Workbook
+    Dim ws As Worksheet
+    Dim cellValue As Variant
+    Dim i As Integer
+    Dim rowIndex As Integer
+
+    ' Disable screen updating and automatic calculations for better performance
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+    Application.EnableEvents = False
+    Application.DisplayAlerts = False
+
+    ' Specify the base folder path
+    baseFolderPath = "C:\Users\Lenovo\Desktop\drive-download-20241205T073027Z-001"
+    ' Specify the starting result cell in the external file
+    Set resultCell = ThisWorkbook.Sheets(1).Range("B4")
+
+    ' Loop through all Excel files in the base folder
+    folderPath = baseFolderPath & "\"
+    fileName = Dir(folderPath & "*.xlsx") ' Get the first Excel file
+
+    ' Initialize sum values for each row from AT18 to AT32
+    Dim sumArray(18 To 32) As Double
+    For i = 18 To 32
+        sumArray(i) = 0
+    Next i
+
+    ' Loop through each file in the folder
+    Do While fileName <> ""
+        ' Skip hidden or system files
+        If fileName <> "." And fileName <> ".." Then
+            On Error Resume Next ' In case the file cannot be opened
+
+            ' Open the workbook without displaying alerts or updating screen
+            Set wb = Workbooks.Open(folderPath & fileName, ReadOnly:=True)
+
+            ' Ensure the sheet exists and process it
+            If Not wb Is Nothing Then
+                On Error GoTo 0 ' Reset error handling to default
+
+                ' Assuming the sheet name is 'DPR' (adjust if necessary)
+                Set ws = wb.Sheets("DPR")
+
+                ' Loop through each row from AT18 to AT32 and sum the values across all files
+                For i = 18 To 32
+                    cellValue = ws.Range("AT" & i).Value
+                    If Not IsEmpty(cellValue) Then
+                        sumArray(i) = sumArray(i) + cellValue
+                    End If
+                Next i
+
+                ' Close the workbook without saving
+                wb.Close False
+            End If
+        End If
+
+        ' Get the next file
+        fileName = Dir
+    Loop
+
+    ' Write the summed values to the external file starting from A4
+    For i = 18 To 32
+        resultCell.Offset(i - 18, 0).Value = sumArray(i)
+    Next i
+
+    ' Restore Excel settings
+    Application.ScreenUpdating = True
+    Application.Calculation = xlCalculationAutomatic
+    Application.EnableEvents = True
+    Application.DisplayAlerts = True
+End Sub
+
