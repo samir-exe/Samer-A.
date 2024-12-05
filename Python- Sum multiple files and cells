@@ -1,0 +1,54 @@
+import os
+import pandas as pd
+import warnings
+
+# Suppress specific warnings from openpyxl
+warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+
+# Define the folder path where the Excel files are located
+folder_path = r'C:\Users\Lenovo\Desktop\drive-download-20241205T073027Z-001'
+
+# Specify the output Excel file where the results will be saved
+output_file = r'C:\Users\Lenovo\Desktop\output.xlsx'
+
+# Initialize a list to store the sums for each row (from AT18 to AT32)
+sum_values = [0] * 15  # To store sums for AT18 to AT32 (15 values)
+
+# Get the list of all Excel files in the folder
+file_list = [f for f in os.listdir(folder_path) if f.endswith('.xlsx')]
+total_files = len(file_list)
+
+# Start processing files and show progress
+for idx, filename in enumerate(file_list, 1):
+    file_path = os.path.join(folder_path, filename)
+    try:
+        # Load the Excel file
+        excel_data = pd.ExcelFile(file_path)
+
+        # Check if the "DPR" sheet exists
+        if 'DPR' in excel_data.sheet_names:
+            dpr_data = excel_data.parse('DPR', header=None)
+
+            # Sum the values for AT18 to AT32 (rows 18 to 32, which are indices 17 to 31)
+            for i in range(15):  # Loop through rows 18 to 32 (indices 17 to 31)
+                row_index = 17 + i  # 18 -> index 17, 19 -> index 18, ..., 32 -> index 31
+                if row_index < len(dpr_data):  # Check if row exists in the data
+                    value = dpr_data.iloc[row_index, 45]  # AT is the 46th column (index 45)
+                    if pd.notna(value):  # Ensure the value is not NaN
+                        sum_values[i] += float(value)
+
+    except Exception as e:
+        print(f"Error processing file {filename}: {e}")
+
+    # Calculate and display the progress percentage
+    progress = (idx / total_files) * 100
+    print(f"Processing file {idx}/{total_files} - {progress:.2f}% completed")
+
+# Write the summed values to the output Excel file starting from A4
+output_df = pd.DataFrame(sum_values, columns=['Sum'])
+
+# Write to the output Excel file (without a header, starting from A4)
+with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+    output_df.to_excel(writer, index=False, startrow=3, header=False, sheet_name='Sheet1')
+
+print(f"Summed values written to {output_file}")
